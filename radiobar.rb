@@ -52,14 +52,28 @@ class Radiobar
     false
    end
    connect_buttons
+   connect_callbacks
    @window.show_all
    Gtk.main
  end 
+ 
+ def connect_callbacks
+   @xc.broadcast_playback_status.notifier do |res|
+    state(res.value)
+   end
+ end
 
  def connect_buttons
 
     @playpause_button.signal_connect("clicked") do |w|
-      @xc.playback_start
+      case w.label
+      when "Resume"
+        @xc.playback_start
+      when "Play"
+        @xc.playback_start
+      when "Pause"
+        @xc.playback_pause
+      end
     end
 
     @stop_button.signal_connect("clicked") do |w|
@@ -94,8 +108,31 @@ class Radiobar
 
       end
     end
- 
 
+ end
+
+
+ def state(value)
+  case value
+  when 0 
+    stopped
+  when 1
+    playing
+  when 2
+    paused
+  end
+ end
+
+ def stopped
+    @playpause_button.label = "Play"
+ end
+
+ def playing
+     @playpause_button.label = "Pause"
+ end
+
+ def paused
+    @playpause_button.label = "Resume"
  end
 
 
@@ -105,7 +142,5 @@ xc = Xmms::Client.new(CLIENT)
 xc.connect(IPCPATH)
 xc.add_to_glib_mainloop
 radiobar = Radiobar.new(xc)
-
-
 
 
