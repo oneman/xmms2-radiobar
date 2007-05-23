@@ -53,6 +53,8 @@ class Radiobar
    end
    connect_buttons
    connect_callbacks
+   state @xc.playback_status.wait.value
+   @xc.add_to_glib_mainloop
    @window.show_all
    Gtk.main
  end 
@@ -140,7 +142,6 @@ end
 
 xc = Xmms::Client.new(CLIENT)
 xc.connect(IPCPATH)
-xc.add_to_glib_mainloop
 radiobar = Radiobar.new(xc)
 
 
