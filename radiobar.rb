@@ -25,7 +25,7 @@ class Radiobar
  def initialize(xc)
    
    @xc = xc
-   @single_cont = "single"   
+   @single_cont = "Cont"   
 
    @window = Gtk::Window.new
    @window.title = "radiobar"
@@ -53,6 +53,7 @@ class Radiobar
    end
    connect_buttons
    connect_callbacks
+   @playback_id = @xc.playback_current_id.wait.value
    state @xc.playback_status.wait.value
    @xc.add_to_glib_mainloop
    @window.show_all
@@ -60,6 +61,15 @@ class Radiobar
  end 
  
  def connect_callbacks
+   @xc.broadcast_playback_current_id.notifier do |res|
+    if @playback_id != res.value
+      if @single_cont == "Single"
+         @xc.playback_stop
+      end 
+    end
+    @playback_id = res.value
+   end
+
    @xc.broadcast_playback_status.notifier do |res|
     state(res.value)
    end
@@ -112,7 +122,6 @@ class Radiobar
     end
 
  end
-
 
  def state(value)
   case value
