@@ -13,12 +13,20 @@ require 'gtk2'
 require "xmmsclient"
 require 'xmmsclient_glib'
 
-VERSION = 0.2
+IPCPATH = "tcp://127.0.0.1:9667"
 FLASH_TIME = 30
+
+CLIENT = "radiobar"
 
 class Radiobar
 
- def initialize 
+ attr_reader :single_cont
+
+ def initialize(xc)
+   
+   @xc = xc
+   @single_cont = "single"   
+
    @window = Gtk::Window.new
    @window.title = "radiobar"
    @window.border_width = 30
@@ -30,27 +38,73 @@ class Radiobar
    @next_button = Gtk::Button.new("Next")
    @singlecont_button = Gtk::Button.new("Cont")
    @voice_button = Gtk::Button.new("Voice")
-
+    
    @bar.pack_start(@playpause_button, true, true, 0)
    @bar.pack_start(@stop_button, true, true, 0)
    @bar.pack_start(@prev_button, true, true, 0)
    @bar.pack_start(@next_button, true, true, 0)
    @bar.pack_start(@singlecont_button, true, true, 0)
    @bar.pack_start(@voice_button, true, true, 0)
-
+     
    @window.add(@bar)
    @window.signal_connect('delete_event') do
     Gtk.main_quit
     false
    end
+   connect_buttons
    @window.show_all
    Gtk.main
  end 
 
+ def connect_buttons
+
+    @playpause_button.signal_connect("clicked") do |w|
+      @xc.playback_start
+    end
+
+    @stop_button.signal_connect("clicked") do |w|
+      @xc.playback_stop
+    end
+
+    @prev_button.signal_connect("clicked") do |w|
+      `xmms2 prev`
+    end
+
+    @next_button.signal_connect("clicked") do |w|
+      `xmms2 next`
+    end
+
+    @singlecont_button.signal_connect("clicked") do |w|
+      case w.label
+      when "Single"
+        w.label = "Cont"
+        @single_cont = "Cont"
+      when "Cont"
+        w.label = "Single"
+        @single_cont = "Single"
+      end
+    end
+
+    @voice_button.signal_connect("clicked") do |w|
+      case w.label
+      when "Voice"
+        w.label = "Over"
+      when "Over"
+        w.label = "Voice"
+
+      end
+    end
+ 
+
+ end
+
+
 end
 
-
-radiobar = Radiobar.new
+xc = Xmms::Client.new(CLIENT)
+xc.connect(IPCPATH)
+xc.add_to_glib_mainloop
+radiobar = Radiobar.new(xc)
 
 
 
