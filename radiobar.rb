@@ -114,10 +114,13 @@ class Radiobar
     @voice_button.signal_connect("clicked") do |w|
       case w.label
       when "Voice"
+        @xc.playback_volume_set(:left, 35)
+        @xc.playback_volume_set(:right, 35)
         w.label = "Over"
       when "Over"
+        @xc.playback_volume_set(:left, 74)
+        @xc.playback_volume_set(:right, 74)
         w.label = "Voice"
-
       end
     end
 
