@@ -13,7 +13,7 @@ require "xmmsclient"
 require 'xmmsclient_glib'
 
 CLIENT = "radiobar"
-CLIENTVERSION = 1.1
+CLIENTVERSION = 1.2
 
 class Radiobar
 
