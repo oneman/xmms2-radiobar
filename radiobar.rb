@@ -1,22 +1,19 @@
 #!/usr/bin/env ruby
 
-# xmms2 radiobar will be a simple toolbar designed for the 
-# simple needs of radio dj's that do not make sense in
-# any other client, it is intended as a supplimentary client
-# you would use other clients for playlist management
-# controls: play/pause stop, single/cont  prev/next buttons
-# flash play button when 30~ secs from stopping (colored buttons)
-# show time remaining, show current track and next track ?
-# voiceover button
+# http://wiki.xmms2.xmms.se/index.php/Client:radiobar
+# http://coconutfunworld.com/blog.php?auth=54&page=1&post=41
+
+IPCPATH = "tcp://127.0.0.1:9667"
+PLAYING_VOLUME = 74
+VOICEOVER_VOLUME = 34
+
 
 require 'gtk2'
 require "xmmsclient"
 require 'xmmsclient_glib'
 
-IPCPATH = "tcp://127.0.0.1:9667"
-FLASH_TIME = 30
-
 CLIENT = "radiobar"
+CLIENTVERSION = 1.1
 
 class Radiobar
 
@@ -54,6 +51,9 @@ class Radiobar
    connect_buttons
    connect_callbacks
    @playback_id = @xc.playback_current_id.wait.value
+   @xc.playback_volume_set(:left, PLAYING_VOLUME)
+   @xc.playback_volume_set(:right, PLAYING_VOLUME)
+   @volume = PLAYING_VOLUME
    state @xc.playback_status.wait.value
    @xc.add_to_glib_mainloop
    @window.show_all
@@ -73,6 +73,11 @@ class Radiobar
    @xc.broadcast_playback_status.notifier do |res|
     state(res.value)
    end
+
+   @xc.broadcast_playback_volume_changed.notifier do |res|
+    @volume = res.value[:left]
+   end
+
  end
 
  def connect_buttons
@@ -112,19 +117,44 @@ class Radiobar
     end
 
     @voice_button.signal_connect("clicked") do |w|
-      case w.label
-      when "Voice"
-        @xc.playback_volume_set(:left, 35)
-        @xc.playback_volume_set(:right, 35)
-        w.label = "Over"
-      when "Over"
-        @xc.playback_volume_set(:left, 74)
-        @xc.playback_volume_set(:right, 74)
-        w.label = "Voice"
+      unless @tid
+       case w.label
+       when "Voice"
+	@tid= Gtk::timeout_add(10) { volume_down; true }
+        @tid2 = Gtk::timeout_add(600) { 
+                Gtk::timeout_remove(@tid); 
+                Gtk::timeout_remove(@tid2); 
+                @tid = nil;
+                w.label = "Over" }
+       when "Over"
+	@tid = Gtk::timeout_add(10) { volume_up; true }
+        @tid2 = Gtk::timeout_add(600) { 
+                Gtk::timeout_remove(@tid); 
+                Gtk::timeout_remove(@tid2);
+                @tid = nil;
+                w.label = "Voice" }
+       end
       end
     end
 
  end
+
+ def volume_down
+       unless @volume < VOICEOVER_VOLUME + 1
+        @xc.playback_volume_set(:left, @volume - 1)
+        @xc.playback_volume_set(:right, @volume - 1)
+        @volume = @volume - 1
+       end
+ end
+
+ def volume_up
+        unless @volume > PLAYING_VOLUME - 1
+         @xc.playback_volume_set(:left, @volume + 1)
+         @xc.playback_volume_set(:right, @volume + 1)
+         @volume = @volume + 1
+        end
+ end
+
 
  def state(value)
   case value
