@@ -98,11 +98,13 @@ class Radiobar
     end
 
     @prev_button.signal_connect("clicked") do |w|
-      `xmms2 prev`
+       @xc.playlist_set_next_rel(-1)
+       @xc.playback_tickle
     end
 
     @next_button.signal_connect("clicked") do |w|
-      `xmms2 next`
+       @xc.playlist_set_next_rel(1)
+       @xc.playback_tickle
     end
 
     @singlecont_button.signal_connect("clicked") do |w|
