@@ -83,14 +83,38 @@ class Radiobar
  def connect_buttons
 
     @playpause_button.signal_connect("clicked") do |w|
+     unless @tid
       case w.label
-      when "Resume"
-        @xc.playback_start
       when "Play"
         @xc.playback_start
-      when "Pause"
-        @xc.playback_pause
+       when "Pause"
+        @playpause_button.sensitive = false
+	@tid= Gtk::timeout_add(10) { volume_down(0); true }
+        @tid2 = Gtk::timeout_add(800) { 
+                Gtk::timeout_remove(@tid); 
+                Gtk::timeout_remove(@tid2); 
+                @tid = nil;
+                @xc.playback_pause
+                w.label = "Resume" 
+                @playpause_button.sensitive = true }
+      when "Resume"
+        @playpause_button.sensitive = false
+        @xc.playback_start
+	@tid = Gtk::timeout_add(10) { 
+                   if @voice_button.label == "Over"
+                     volume_up(VOICEOVER_VOLUME); 
+                   else
+                     volume_up
+                   end 
+                   true }
+        @tid2 = Gtk::timeout_add(800) { 
+                Gtk::timeout_remove(@tid); 
+                Gtk::timeout_remove(@tid2);
+                @tid = nil;
+                w.label = "Pause" 
+                @playpause_button.sensitive = true }
       end
+     end
     end
 
     @stop_button.signal_connect("clicked") do |w|
@@ -120,37 +144,40 @@ class Radiobar
 
     @voice_button.signal_connect("clicked") do |w|
       unless @tid
+       @voice_button.sensitive = false
        case w.label
        when "Voice"
 	@tid= Gtk::timeout_add(10) { volume_down; true }
-        @tid2 = Gtk::timeout_add(600) { 
+        @tid2 = Gtk::timeout_add(800) { 
                 Gtk::timeout_remove(@tid); 
                 Gtk::timeout_remove(@tid2); 
                 @tid = nil;
-                w.label = "Over" }
+                w.label = "Over"
+                @voice_button.sensitive = true }
        when "Over"
 	@tid = Gtk::timeout_add(10) { volume_up; true }
-        @tid2 = Gtk::timeout_add(600) { 
+        @tid2 = Gtk::timeout_add(800) { 
                 Gtk::timeout_remove(@tid); 
                 Gtk::timeout_remove(@tid2);
                 @tid = nil;
-                w.label = "Voice" }
+                w.label = "Voice" 
+                @voice_button.sensitive = true }
        end
       end
     end
 
  end
 
- def volume_down
-       unless @volume < VOICEOVER_VOLUME + 1
+ def volume_down(lowest=VOICEOVER_VOLUME)
+       unless @volume < lowest + 1
         @xc.playback_volume_set(:left, @volume - 1)
         @xc.playback_volume_set(:right, @volume - 1)
         @volume = @volume - 1
        end
  end
 
- def volume_up
-        unless @volume > PLAYING_VOLUME - 1
+ def volume_up(highest=PLAYING_VOLUME)
+        unless @volume > highest - 1
          @xc.playback_volume_set(:left, @volume + 1)
          @xc.playback_volume_set(:right, @volume + 1)
          @volume = @volume + 1
@@ -174,7 +201,7 @@ class Radiobar
  end
 
  def playing
-     @playpause_button.label = "Pause"
+    @playpause_button.label = "Pause"
  end
 
  def paused
